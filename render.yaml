@@ -1,4 +1,26 @@
 services:
+  - type: pserv
+    name: amazing-grace-salon-mysql
+    runtime: docker
+    dockerfilePath: ./deploy/mysql/Dockerfile
+    dockerContext: ./deploy/mysql
+    plan: 0.5c-512mb
+    region: frankfurt
+    autoDeployTrigger: "off"
+    disk:
+      name: salon-mysql-data
+      mountPath: /var/lib/mysql
+      sizeGB: 10
+    envVars:
+      - key: MYSQL_DATABASE
+        value: "salon management"
+      - key: MYSQL_USER
+        value: salon_app
+      - key: MYSQL_PASSWORD
+        generateValue: true
+      - key: MYSQL_ROOT_PASSWORD
+        generateValue: true
+
   - type: web
     name: amazing-grace-beauty-salon
     runtime: docker
@@ -12,16 +34,25 @@ services:
       sizeGB: 1
     envVars:
       - key: SALON_DB_HOST
-        sync: false
+        fromService:
+          name: amazing-grace-salon-mysql
+          type: pserv
+          property: host
       - key: SALON_DB_PORT
-        sync: false
+        fromService:
+          name: amazing-grace-salon-mysql
+          type: pserv
+          property: port
       - key: SALON_DB_NAME
-        sync: false
+        value: "salon management"
       - key: SALON_DB_USER
-        sync: false
+        value: salon_app
       - key: SALON_DB_PASS
-        sync: false
-      - key: SALON_DB_SSL_CA
-        sync: false
+        fromService:
+          name: amazing-grace-salon-mysql
+          type: pserv
+          envVarKey: MYSQL_PASSWORD
       - key: SALON_SETUP_TOKEN
+        sync: false
+      - key: SALON_MIGRATION_TOKEN
         sync: false

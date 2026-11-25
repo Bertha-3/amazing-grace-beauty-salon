@@ -31,12 +31,19 @@ The database setup is repeatable and uses `CREATE TABLE IF NOT EXISTS` plus idem
 
 ## Deploy to Render
 
-The repository includes a Dockerfile and `render.yaml` Blueprint for a PHP/Apache web service. Render does not provide managed MySQL, and a Render service cannot reach your XAMPP computer's `127.0.0.1`. Before deployment:
+The repository includes a Dockerfile and `render.yaml` Blueprint for a PHP/Apache web service and a private, self-managed MySQL 8 service. Render does not provide managed MySQL, and a Render service cannot reach your XAMPP computer's `127.0.0.1`. The Blueprint provisions a paid 0.5 CPU / 512 MB instance for each service, a 1 GB uploads disk, and a 10 GB MySQL disk. Review Render's current prices before confirming; the database service also needs ongoing backup and maintenance.
 
-1. Push this project to a GitHub repository and create a Render Blueprint from it. The Blueprint uses Frankfurt, a paid 0.5 CPU / 512 MB web instance, and a 1 GB persistent disk for customer/admin image uploads. Review Render's current service and disk pricing before confirming.
-2. Provision a reachable MySQL 8-compatible database with your database provider. Use the existing logical database name `salon management` if supported, and export/import your existing database data if you want to retain it. The app does not create databases. Permit connections from Render's outbound addresses and use TLS where the provider supports it.
-3. Enter the database host, port, database name, user and password when Render prompts for the Blueprint's `SALON_DB_*` variables. For a provider-supplied CA certificate, upload it to Render as a secret file and set `SALON_DB_SSL_CA` to its mounted path; otherwise leave it blank.
-4. Set `SALON_SETUP_TOKEN` to a long, unique random value in Render. After deployment, open `/setup.php`, enter that token, and create the first administrator. Remove `SALON_SETUP_TOKEN` from the service environment after setup. The setup page rejects requests without the token on Render and refuses to create another administrator once one exists.
-5. Uploaded images persist on the disk mounted at `/var/www/html/uploads`; bundled sample photos live in `assets/images` so the disk mount does not hide them. Render sets `RENDER_EXTERNAL_URL`, which the app uses for secure password-reset links and HTTPS session cookies.
+1. Sign up for Render, connect the GitHub account that owns this repository, and create a Blueprint from `Bertha-3/amazing-grace-beauty-salon`. Confirm the two paid services and disks.
+2. Set the prompted `SALON_SETUP_TOKEN` and `SALON_MIGRATION_TOKEN` to different, long random values. Do not put either token or a database export in GitHub.
+3. If you want to migrate the XAMPP data, export it locally to a file outside the repository. For XAMPP on Windows, a command like this writes the SQL dump to a private temporary directory:
 
-The project has no Git remote or Render account connection configured in this workspace, so pushing the repository, entering database secrets, and creating the live Render service must be completed in your GitHub and Render accounts. Password-reset emails also require a working mail transport; configure one before relying on resets in production.
+   ```powershell
+   $dumpPath = Join-Path $env:TEMP 'salon-management.sql'
+   & 'C:\xampp\mysql\bin\mysqldump.exe' --host=127.0.0.1 --user=root --skip-password --single-transaction --skip-lock-tables --add-drop-table --default-character-set=utf8mb4 "--result-file=$dumpPath" 'salon management'
+   ```
+
+   After both Render services are live, visit `https://<your-render-host>/migrate.php`, enter `SALON_MIGRATION_TOKEN`, and upload the SQL dump. It replaces matching tables in the hosted database. On success, remove `SALON_MIGRATION_TOKEN` in Render immediately; the endpoint also records a one-time completion marker.
+4. Open `/setup.php`, enter `SALON_SETUP_TOKEN`, and create the first administrator. Remove `SALON_SETUP_TOKEN` from the Render environment after setup. The setup page refuses to create another administrator once one exists.
+5. Uploaded images persist on the disk mounted at `/var/www/html/uploads`; bundled sample photos live in `assets/images` so the disk mount does not hide them. Render sets `RENDER_EXTERNAL_URL`, which the app uses for password-reset links and HTTPS session cookies.
+
+The SQL export contains customer and business data: keep it private, upload it only to your own Render service, and delete the temporary local copy when you have verified the migration. Never commit it to this public repository. Render's MySQL guide recommends regular `mysqldump` backups; do not rely on disk snapshots alone for database recovery. Password-reset emails also require a working mail transport; configure one before relying on resets in production.
