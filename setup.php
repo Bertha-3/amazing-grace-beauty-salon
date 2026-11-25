@@ -9,11 +9,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = filter_var(trim($_POST['email'] ?? ''), FILTER_VALIDATE_EMAIL);
     $password = $_POST['password'] ?? '';
     try {
-        if (getenv('RENDER') === 'true') {
+        if (is_hosted_deployment()) {
             $setupToken = getenv('SALON_SETUP_TOKEN');
             $submittedToken = $_POST['setup_token'] ?? '';
             if ($setupToken === false || $setupToken === '') {
-                throw new RuntimeException('Set SALON_SETUP_TOKEN in Render before running first-time setup.');
+                throw new RuntimeException('Set SALON_SETUP_TOKEN in the hosting service variables before running first-time setup.');
             }
             if (!is_string($submittedToken) || !hash_equals($setupToken, $submittedToken)) {
                 throw new RuntimeException('The first-time setup token is incorrect.');
@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php if ($error): ?><div class="notice notice-error"><?= h($error) ?></div><?php endif; ?>
     <form method="post" class="form-stack">
       <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
-      <?php if (getenv('RENDER') === 'true'): ?>
+      <?php if (is_hosted_deployment()): ?>
         <label>First-time setup token<input type="password" name="setup_token" required autocomplete="off"></label>
       <?php endif; ?>
       <label>Your name<input name="name" required maxlength="120" value="<?= h($_POST['name'] ?? '') ?>"></label>

@@ -2,7 +2,7 @@
 require_once __DIR__ . '/includes/app.php';
 
 $migrationToken = getenv('SALON_MIGRATION_TOKEN');
-if (getenv('RENDER') !== 'true' || $migrationToken === false || $migrationToken === '') {
+if (!is_hosted_deployment() || $migrationToken === false || $migrationToken === '') {
     http_response_code(404);
     exit;
 }
@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$complete) {
             $exitCode = proc_close($process);
             if ($exitCode !== 0) {
                 error_log('Database migration failed with MySQL client exit code ' . $exitCode . '.');
-                throw new RuntimeException('The database import failed. Check the Render service logs and try again.');
+                throw new RuntimeException('The database import failed. Check the hosting service logs and try again.');
             }
         } finally {
             $cleanupFailed = false;
@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$complete) {
         }
 
         if (file_put_contents($marker, gmdate('c'), LOCK_EX) === false) {
-            throw new RuntimeException('Import finished, but the one-time lock could not be saved. Remove SALON_MIGRATION_TOKEN in Render now.');
+            throw new RuntimeException('Import finished, but the one-time lock could not be saved. Remove SALON_MIGRATION_TOKEN from the hosting service now.');
         }
         $success = true;
         $complete = true;
@@ -108,9 +108,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$complete) {
   <a class="brand brand-dark" href="index.php"><span class="brand-mark">AG</span><span>Amazing Grace<small>BEAUTY SALON</small></span></a>
   <p class="eyebrow">ONE-TIME DATA TRANSFER</p><h1>Import salon data</h1>
   <?php if ($success): ?>
-    <div class="notice notice-success">Database import completed. Remove <code>SALON_MIGRATION_TOKEN</code> from Render now, then continue with first-time setup.</div>
+    <div class="notice notice-success">Database import completed. Remove <code>SALON_MIGRATION_TOKEN</code> from the hosting service now, then continue with first-time setup.</div>
   <?php elseif ($complete): ?>
-    <div class="notice notice-info">A database import has already completed. Remove <code>SALON_MIGRATION_TOKEN</code> from Render before continuing.</div>
+    <div class="notice notice-info">A database import has already completed. Remove <code>SALON_MIGRATION_TOKEN</code> from the hosting service before continuing.</div>
   <?php else: ?>
     <p>This replaces matching tables in the hosted database with the uploaded SQL export. Upload only an export from your salon database.</p>
     <?php if ($error): ?><div class="notice notice-error"><?= h($error) ?></div><?php endif; ?>

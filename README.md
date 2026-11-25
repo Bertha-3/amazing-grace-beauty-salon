@@ -29,7 +29,34 @@ The database setup is repeatable and uses `CREATE TABLE IF NOT EXISTS` plus idem
 - Sample hairstyle images: [cornrows (Pexels 11728787)](https://www.pexels.com/photo/a-woman-with-a-cornrow-wearing-a-black-shirt-11728787/), [Bantu knots (Pexels 31952853)](https://www.pexels.com/photo/portrait-of-a-woman-with-natural-hairstyle-outdoors-31952853/), and [natural afro (Pexels 18039499)](https://www.pexels.com/photo/portrait-of-smiling-young-woman-with-afro-hair-18039499/).
 - Relaxed-hair reference image: [short-hair portrait (Pexels 9486659)](https://www.pexels.com/photo/a-cheerful-woman-in-a-black-tank-top-and-shorts-9486659/).
 
-## Deploy to Render
+## Deploy to Railway (free/trial)
+
+The root `Dockerfile` builds the PHP/Apache service. Railway detects it when you deploy this GitHub repository. Railway currently documents a $1 monthly Free-plan usage credit and a one-time $5, 30-day trial for new accounts, with no card required. Check Railway's current [free-plan limits](https://docs.railway.com/pricing/free-plan) before deploying, and do not upgrade to a paid plan if you want to avoid charges.
+
+The database can use Railway's MySQL service. Keep the database on its persistent volume. On the Free plan, the PHP app's `uploads` directory has no separate persistent volume, so uploaded photos can be lost when the service is redeployed or restarted. The bundled sample photos are retained because they are part of the repository. Treat a Free/trial deployment as a demo, not as the live system for customer or order data; services can sleep or stop when included usage runs out.
+
+1. Sign in to Railway, connect the GitHub account that owns this repository, and create a project from `Bertha-3/amazing-grace-beauty-salon`. Deploy the web service from the repository root.
+2. Add a MySQL database service to the same Railway project. Wait until it is healthy before configuring the web service. Keep the database's persistent volume and do not enable paid features.
+3. In the web service's Variables tab, add these references, replacing `mysql` if you named the database service differently:
+
+   ```text
+   SALON_DB_HOST=${{mysql.MYSQLHOST}}
+   SALON_DB_PORT=${{mysql.MYSQLPORT}}
+   SALON_DB_NAME=${{mysql.MYSQLDATABASE}}
+   SALON_DB_USER=${{mysql.MYSQLUSER}}
+   SALON_DB_PASS=${{mysql.MYSQLPASSWORD}}
+   SALON_SETUP_TOKEN=<a-long-random-secret>
+   SALON_MIGRATION_TOKEN=<a-different-long-random-secret>
+   ```
+
+   Keep both tokens private and set them in Railway, not in GitHub or this repository.
+4. Generate a Railway public domain for the web service and set `SALON_BASE_URL` to `https://<your-domain>`. Set the service health-check path to `/health.php`; Railway supplies the web server's `PORT`.
+5. To transfer the existing XAMPP data, export the `salon management` database to a `.sql` file outside the repository. After MySQL and the web service are healthy, upload that file at `https://<your-domain>/migrate.php` using `SALON_MIGRATION_TOKEN`. The import replaces matching tables in the Railway database. Remove `SALON_MIGRATION_TOKEN` from Railway immediately after import.
+6. Visit `https://<your-domain>/setup.php`, enter `SALON_SETUP_TOKEN`, and create the administrator. Remove `SALON_SETUP_TOKEN` from Railway after setup. If your export already contains an administrator, use that account instead; setup will not create a second one.
+
+The SQL export contains customer and business data: keep it private, upload it only to your own Railway service, and delete the temporary local copy after verifying the migration. Never commit it to this public repository.
+
+## Deploy to Render (previous option)
 
 The repository includes a Dockerfile and `render.yaml` Blueprint for a PHP/Apache web service and a private, self-managed MySQL 8 service. Render does not provide managed MySQL, and a Render service cannot reach your XAMPP computer's `127.0.0.1`. The Blueprint provisions a paid 0.5 CPU / 512 MB instance for each service, a 1 GB uploads disk, and a 10 GB MySQL disk. Review Render's current prices before confirming; the database service also needs ongoing backup and maintenance.
 

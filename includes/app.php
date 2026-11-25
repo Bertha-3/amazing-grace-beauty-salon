@@ -3,14 +3,21 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../config/config.php';
 
+function is_hosted_deployment(): bool
+{
+    return getenv('RENDER') === 'true'
+        || (getenv('RAILWAY_PROJECT_ID') !== false && getenv('RAILWAY_PROJECT_ID') !== '');
+}
+
 if (session_status() !== PHP_SESSION_ACTIVE) {
     $renderUrl = getenv('RENDER_EXTERNAL_URL');
     $renderHttps = getenv('RENDER') === 'true'
         && $renderUrl !== false
         && strtolower((string)parse_url($renderUrl, PHP_URL_SCHEME)) === 'https';
+    $forwardedProto = strtolower(trim(explode(',', (string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''), 2)[0]));
     session_set_cookie_params([
         'httponly' => true,
-        'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $renderHttps,
+        'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $renderHttps || $forwardedProto === 'https',
         'samesite' => 'Lax',
     ]);
     session_start();
@@ -194,6 +201,10 @@ function base_url(string $path = ''): string
     $renderUrl = getenv('RENDER_EXTERNAL_URL');
     if ($renderUrl !== false && $renderUrl !== '') {
         return rtrim($renderUrl, '/') . '/' . ltrim($path, '/');
+    }
+    $railwayDomain = getenv('RAILWAY_PUBLIC_DOMAIN');
+    if ($railwayDomain !== false && $railwayDomain !== '') {
+        return 'https://' . rtrim($railwayDomain, '/') . '/' . ltrim($path, '/');
     }
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     if (!preg_match('/\A[a-z0-9.\-\[\]:]+\z/i', $host)) {
