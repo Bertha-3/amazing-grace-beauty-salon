@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: amazing-grace-beauty-salon
+    runtime: docker
+    plan: 0.5c-512mb
+    region: frankfurt
+    healthCheckPath: /health.php
+    autoDeployTrigger: commit
+    disk:
+      name: salon-uploads
+      mountPath: /var/www/html/uploads
+      sizeGB: 1
+    envVars:
+      - key: SALON_DB_HOST
+        sync: false
+      - key: SALON_DB_PORT
+        sync: false
+      - key: SALON_DB_NAME
+        sync: false
+      - key: SALON_DB_USER
+        sync: false
+      - key: SALON_DB_PASS
+        sync: false
+      - key: SALON_DB_SSL_CA
+        sync: false
+      - key: SALON_SETUP_TOKEN
+        sync: false

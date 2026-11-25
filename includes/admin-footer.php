@@ -1,0 +1,1 @@
+</main><footer class="admin-footer"><span>© <?= date('Y') ?> Amazing Grace Beauty Salon</span><span>Every detail, with care.</span></footer></div><script src="assets/js/app.js" defer></script></body></html>
