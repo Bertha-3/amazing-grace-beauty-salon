@@ -4,6 +4,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends default-mysql-client \
     && rm -rf /var/lib/apt/lists/* \
     && docker-php-ext-install pdo_mysql \
+    && a2dismod mpm_event \
+    && a2enmod mpm_prefork \
     && a2enmod headers rewrite \
     && printf '<Directory /var/www/html>\n    AllowOverride All\n    Require all granted\n</Directory>\n' > /etc/apache2/conf-available/salon.conf \
     && a2enconf salon \
